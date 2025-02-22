@@ -30,17 +30,18 @@ class MainViewController: UIViewController {
 
         setupNavigationItems()
         setupLayout()
+        binding()
     }
 
     private func setupNavigationItems() {
         navigationItem.leftBarButtonItem = UIBarButtonItem(image: UIImage(named: "avatar"),
                                                            style: .plain,
                                                            target: self,
-                                                           action: #selector(avatarDidTapped))
+                                                           action: #selector(avatarDidTap))
         navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "notification"),
                                                             style: .plain,
                                                             target: self,
-                                                            action: #selector(notificationDidTapped))
+                                                            action: #selector(notificationDidTap))
     }
 
     private func setupLayout() {
@@ -65,12 +66,30 @@ class MainViewController: UIViewController {
         ])
     }
 
-    @objc private func avatarDidTapped() {
+    private func binding() {
+        let output = viewModel.transform(.init(viewDidPull: refreshDidPullSubject.eraseToAnyPublisher()),
+                                         cancellables: &cancellables)
+
+        output.isLoadingVisible.sink { [weak self] result in
+            guard let self else { return }
+
+            if result, self.collectionView.refreshControl?.isRefreshing ?? false {
+                collectionView.refreshControl?.endRefreshing()
+            }
+        }
+        .store(in: &cancellables)
+    }
+
+    @objc private func avatarDidTap() {
         print("avatar did tapped")
     }
 
-    @objc private func notificationDidTapped() {
+    @objc private func notificationDidTap() {
         print("notification did tapped")
+    }
+
+    @objc private func refreshDidPull() {
+        refreshDidPullSubject.send(())
     }
 
     private lazy var collectionView: UICollectionView = {
@@ -81,10 +100,8 @@ class MainViewController: UIViewController {
             return sectionLayout
         }
 
-        layout.configuration.interSectionSpacing = 40
-
         let view = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        view.backgroundColor = .clear
+        view.backgroundColor = .customBG
         view.register(BalanceCell.self,
                       forCellWithReuseIdentifier: BalanceCell.reuseIdentifier)
         view.register(ActionCell.self,
@@ -100,6 +117,10 @@ class MainViewController: UIViewController {
                       forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
                       withReuseIdentifier: FavoriteHeader.reuseIdentifier)
         view.dataSource = self
+
+        let control = UIRefreshControl()
+        control.addTarget(self, action: #selector(refreshDidPull), for: .valueChanged)
+        view.refreshControl = control
         return view
     }()
 
@@ -108,7 +129,8 @@ class MainViewController: UIViewController {
         return view
     }()
 
-    private var amountVisible = CurrentValueSubject<Bool, Never>(false)
+    private var amountVisibleSubject = CurrentValueSubject<Bool, Never>(false)
+    private var refreshDidPullSubject = PassthroughSubject<Void, Never>()
 
     private var cancellables: Set<AnyCancellable> = []
 }
@@ -144,7 +166,7 @@ extension MainViewController: UICollectionViewDataSource {
             }
 
             cell.configure(viewModel: .init(),
-                           amountVisiableDidSet: amountVisible.eraseToAnyPublisher(),
+                           amountVisiableDidSet: amountVisibleSubject.eraseToAnyPublisher(),
                            infoDidUpdate: Just(viewModel.balances[indexPath.item]).eraseToAnyPublisher())
             return cell
         case .action:

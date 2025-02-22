@@ -29,13 +29,38 @@ final class MainViewModel: ViewModelType {
             .sink { [weak self] _ in
                 guard let self else { return }
 
-                isLoadingVisibleSubject.send(true)
+                self.isLoadingVisibleSubject.send(true)
+                self.fetchData()
             }
             .store(in: &cancellables)
 
         return .init(isLoadingVisible: isLoadingVisibleSubject.eraseToAnyPublisher(),
                      hasNewNotification: hasNewNotificationSubject.eraseToAnyPublisher(),
                      balance: balancesSubject.eraseToAnyPublisher())
+    }
+
+    private func fetchData() {
+        requestCancellables = []
+
+        let apiClient = APIClient()
+        Publishers.Zip4(
+            apiClient.fetchNotifications(),
+            apiClient.fetchBalances(currencies: Currency.allCases),
+            apiClient.fetchFavorites(),
+            apiClient.fetchBanners()
+        )
+        .sink { [weak self] completion in
+            switch completion {
+            case .finished:
+                break
+            case let .failure(error):
+                print(error)
+            }
+            self?.isLoadingVisibleSubject.send(false)
+        } receiveValue: { notifications, balances, favorites, banners in
+            print(notifications, balances, favorites, banners)
+        }
+        .store(in: &requestCancellables)
     }
 
     private let isLoadingVisibleSubject = CurrentValueSubject<Bool, Never>(false)
@@ -45,6 +70,7 @@ final class MainViewModel: ViewModelType {
     private let favoritesSubject = CurrentValueSubject<[Favorite], Never>(Constants.defaultFavorites)
     private let bannersSubject = CurrentValueSubject<[Banner], Never>(Constants.defaultBanners)
     private let tabsSubject = CurrentValueSubject<[Tab], Never>(Constants.defaultTabs)
+    private var requestCancellables: Set<AnyCancellable> = []
 }
 
 private enum Constants {

@@ -13,7 +13,24 @@ class APIClient {
         self.session = session
     }
 
-    func fetchBalance(currencies: [Currency]) -> AnyPublisher<[BalanceInfo], Error> {
+    private func request<T: Decodable>(_ url: URL) -> AnyPublisher<T, Error> {
+        return session.dataTaskPublisher(for: url)
+            .map { $0.data }
+            .decode(type: T.self, decoder: JSONDecoder())
+            .eraseToAnyPublisher()
+    }
+
+    private let session: URLSession
+}
+
+private enum Constants {
+    static let host = "https://willywu0201.github.io/data"
+}
+
+// MARK: Balance API
+
+extension APIClient {
+    func fetchBalances(currencies: [Currency]) -> AnyPublisher<[BalanceInfo], Error> {
         var publishers: [AnyPublisher<BalanceInfo, Error>] = []
         for currency in currencies {
             publishers.append(fetchBalance(currency: currency).eraseToAnyPublisher())
@@ -21,7 +38,7 @@ class APIClient {
         return Publishers.MergeMany(publishers).collect().eraseToAnyPublisher()
     }
 
-    func fetchBalance(currency: Currency) -> AnyPublisher<BalanceInfo, Error> {
+    private func fetchBalance(currency: Currency) -> AnyPublisher<BalanceInfo, Error> {
         return Publishers.Zip3(fetchSaving(currency: currency),
                                fetchFixedDeposit(currency: currency),
                                fetchDigital(currency: currency))
@@ -41,23 +58,38 @@ class APIClient {
     }
 
     private func fetchSaving(currency: Currency) -> AnyPublisher<SavingInfo, Error> {
-        return request(URL(string: "https://willywu0201.github.io/data/\(currency.rawValue)Savings2.json")!)
+        return request(URL(string: "\(Constants.host)/\(currency.rawValue)Savings2.json")!)
     }
 
     private func fetchFixedDeposit(currency: Currency) -> AnyPublisher<FixedDepositInfo, Error> {
-        return request(URL(string: "https://willywu0201.github.io/data/\(currency.rawValue)Fixed2.json")!)
+        return request(URL(string: "\(Constants.host)/\(currency.rawValue)Fixed2.json")!)
     }
 
     private func fetchDigital(currency: Currency) -> AnyPublisher<DigitalInfo, Error> {
-        return request(URL(string: "https://willywu0201.github.io/data/\(currency.rawValue)Digital2.json")!)
+        return request(URL(string: "\(Constants.host)/\(currency.rawValue)Digital2.json")!)
     }
+}
 
-    private func request<T: Decodable>(_ url: URL) -> AnyPublisher<T, Error> {
-        return session.dataTaskPublisher(for: url)
-            .map { $0.data }
-            .decode(type: T.self, decoder: JSONDecoder())
-            .eraseToAnyPublisher()
+// MARK: Notification API
+
+extension APIClient {
+    func fetchNotifications() -> AnyPublisher<NotificationsInfo, Error> {
+        return request(URL(string: "\(Constants.host)/notificationList.json")!)
     }
+}
 
-    private let session: URLSession
+// MARK: Favorite API
+
+extension APIClient {
+    func fetchFavorites() -> AnyPublisher<FavoritesInfo, Error> {
+        return request(URL(string: "\(Constants.host)/favoriteList.json")!)
+    }
+}
+
+// MARK: Banner API
+
+extension APIClient {
+    func fetchBanners() -> AnyPublisher<BannersInfo, Error> {
+        return request(URL(string: "\(Constants.host)/banner.json")!)
+    }
 }

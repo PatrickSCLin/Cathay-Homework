@@ -16,14 +16,16 @@ final class FavoriteCellViewModel: ViewModelType {
         let image: AnyPublisher<UIImage, Never>
     }
 
-    init(type: Favorite) {
+    init(title: String, type: FavoriteType) {
+        self.title = title
         self.type = type
     }
 
     func transform(_ input: Input, cancellables: inout Set<AnyCancellable>) -> Output {
-        return .init(title: Just(type.title).eraseToAnyPublisher(),
+        return .init(title: Just(title).eraseToAnyPublisher(),
                      image: Just(type.image).eraseToAnyPublisher())
     }
 
-    private let type: Favorite
+    private let title: String
+    private let type: FavoriteType
 }

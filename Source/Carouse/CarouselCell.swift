@@ -16,6 +16,7 @@ class CarouselCell: UICollectionViewCell {
     override init(frame: CGRect) {
         super.init(frame: frame)
 
+        setupStyle()
         setupLayout()
     }
 
@@ -38,6 +39,10 @@ class CarouselCell: UICollectionViewCell {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.imageView.image = $0 }
             .store(in: &cancellables)
+    }
+
+    private func setupStyle() {
+        backgroundColor = .customBG
     }
 
     private func setupLayout() {

@@ -15,6 +15,8 @@ class BannerCell: UICollectionViewCell {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
+
+        setupStyle()
         setupLayout()
     }
 
@@ -42,6 +44,10 @@ class BannerCell: UICollectionViewCell {
                                                 currentIndex: UserDefaults.standard.currentBannerIndex))
             }
             .store(in: &cancellables)
+    }
+
+    private func setupStyle() {
+        backgroundColor = .customBG
     }
 
     private func setupLayout() {

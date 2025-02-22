@@ -35,7 +35,9 @@ extension APIClient {
         for currency in currencies {
             publishers.append(fetchBalance(currency: currency).eraseToAnyPublisher())
         }
-        return Publishers.MergeMany(publishers).collect().eraseToAnyPublisher()
+        return Publishers.MergeMany(publishers)
+            .collect(publishers.count)
+            .eraseToAnyPublisher()
     }
 
     private func fetchBalance(currency: Currency) -> AnyPublisher<BalanceInfo, Error> {

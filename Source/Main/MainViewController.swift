@@ -75,6 +75,10 @@ class MainViewController: UIViewController {
 
             if result, self.collectionView.refreshControl?.isRefreshing ?? false {
                 collectionView.refreshControl?.endRefreshing()
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                    self?.collectionView.reloadData()
+                }
             }
         }
         .store(in: &cancellables)
@@ -102,6 +106,7 @@ class MainViewController: UIViewController {
 
         let view = UICollectionView(frame: .zero, collectionViewLayout: layout)
         view.backgroundColor = .customBG
+        view.alwaysBounceVertical = true
         view.register(BalanceCell.self,
                       forCellWithReuseIdentifier: BalanceCell.reuseIdentifier)
         view.register(ActionCell.self,
@@ -183,7 +188,8 @@ extension MainViewController: UICollectionViewDataSource {
                 return UICollectionViewCell()
             }
 
-            cell.configure(viewModel: .init(type: viewModel.favorites[indexPath.item]))
+            let favorite = viewModel.favorites[indexPath.item]
+            cell.configure(viewModel: .init(title: favorite.nickname, type: favorite.transType))
             return cell
         case .banner:
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: BannerCell.reuseIdentifier,
@@ -191,7 +197,7 @@ extension MainViewController: UICollectionViewDataSource {
                 return UICollectionViewCell()
             }
 
-            cell.configure(viewModel: .init(banners: viewModel.banners))
+            cell.configure(viewModel: .init(bannerInfos: viewModel.banners))
             return cell
         }
     }

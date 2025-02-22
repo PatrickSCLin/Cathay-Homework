@@ -12,12 +12,18 @@ class FavoriteHeader: UICollectionReusableView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
+
+        setupStyle()
         setupLayout()
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    private func setupStyle() {
+        backgroundColor = .customBG
     }
 
     private func setupLayout() {

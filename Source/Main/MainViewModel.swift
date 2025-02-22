@@ -6,6 +6,7 @@
 //
 
 import Combine
+import Foundation
 
 final class MainViewModel: ViewModelType {
     struct Input {
@@ -20,8 +21,8 @@ final class MainViewModel: ViewModelType {
 
     var balances: [BalanceInfo] { balancesSubject.value }
     var actions: [Action] { actionsSubject.value }
-    var favorites: [Favorite] { favoritesSubject.value }
-    var banners: [Banner] { bannersSubject.value }
+    var favorites: [FavoriteInfo] { favoritesSubject.value }
+    var banners: [BannerInfo] { bannersSubject.value }
     var tabs: [Tab] { tabsSubject.value }
 
     func transform(_ input: Input, cancellables: inout Set<AnyCancellable>) -> Output {
@@ -49,16 +50,27 @@ final class MainViewModel: ViewModelType {
             apiClient.fetchFavorites(),
             apiClient.fetchBanners()
         )
+        .subscribe(on: DispatchQueue.global(qos: .background))
+        .receive(on: DispatchQueue.main)
         .sink { [weak self] completion in
+            guard let self else { return }
+
             switch completion {
             case .finished:
                 break
             case let .failure(error):
                 print(error)
             }
-            self?.isLoadingVisibleSubject.send(false)
-        } receiveValue: { notifications, balances, favorites, banners in
-            print(notifications, balances, favorites, banners)
+
+            print("patricksclin 2 \(self.favorites.count)")
+            self.isLoadingVisibleSubject.send(false)
+            print("patricksclin 3 \(self.favorites.count)")
+        } receiveValue: { [weak self] notificationsInfo, balanceInfos, favoritesInfo, bannersInfo in
+            print("patricksclin 1 \(favoritesInfo.favorites.count)")
+            self?.balancesSubject.send(balanceInfos)
+            self?.favoritesSubject.send(favoritesInfo.favorites)
+            self?.bannersSubject.send(bannersInfo.banners)
+            self?.hasNewNotificationSubject.send(!notificationsInfo.notifications.isEmpty)
         }
         .store(in: &requestCancellables)
     }
@@ -67,8 +79,8 @@ final class MainViewModel: ViewModelType {
     private let hasNewNotificationSubject = CurrentValueSubject<Bool, Never>(false)
     private let balancesSubject = CurrentValueSubject<[BalanceInfo], Never>(Constants.defaultBalance)
     private let actionsSubject = CurrentValueSubject<[Action], Never>(Constants.defaultActions)
-    private let favoritesSubject = CurrentValueSubject<[Favorite], Never>(Constants.defaultFavorites)
-    private let bannersSubject = CurrentValueSubject<[Banner], Never>(Constants.defaultBanners)
+    private let favoritesSubject = CurrentValueSubject<[FavoriteInfo], Never>([])
+    private let bannersSubject = CurrentValueSubject<[BannerInfo], Never>([])
     private let tabsSubject = CurrentValueSubject<[Tab], Never>(Constants.defaultTabs)
     private var requestCancellables: Set<AnyCancellable> = []
 }
@@ -100,14 +112,6 @@ private enum Constants {
     static let defaultActions: [Action] = [
         .transfer, .payment, .utility,
         .qrcodeScan, .qrcodePay, .topUp
-    ]
-
-    static let defaultFavorites: [Favorite] = [
-        .branches, .contacts, .insurance, .creditCard, .extra
-    ]
-
-    static let defaultBanners: [Banner] = [
-        .banner1, .banner2, .banner3
     ]
 
     static let defaultTabs: [Tab] = [

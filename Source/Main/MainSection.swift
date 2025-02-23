@@ -14,24 +14,30 @@ extension MainViewController {
         case favorite
         case banner
 
-        var layoutItem: NSCollectionLayoutItem {
+        func createItemLayout(viewModel: MainViewModel) -> NSCollectionLayoutItem {
             switch self {
             case .balance:
-                return NSCollectionLayoutItem(layoutSize: .init(widthDimension: .fractionalWidth(1),
-                                                                heightDimension: .estimated(64)))
+                return .init(layoutSize: .init(widthDimension: .fractionalWidth(1),
+                                               heightDimension: .estimated(64)))
             case .action:
-                return NSCollectionLayoutItem(layoutSize: .init(widthDimension: .fractionalWidth(0.33),
-                                                                heightDimension: .estimated(96)))
+                return .init(layoutSize: .init(widthDimension: .fractionalWidth(0.33),
+                                               heightDimension: .estimated(96)))
             case .favorite:
-                return NSCollectionLayoutItem(layoutSize: .init(widthDimension: .fractionalWidth(0.25),
-                                                                heightDimension: .estimated(88)))
+                var fractionalWidth = CGFloat(0.25)
+                if viewModel.favorites.isEmpty {
+                    fractionalWidth = 1
+                } else if viewModel.favorites.count > 4 {
+                    fractionalWidth = 0.2
+                }
+                return .init(layoutSize: .init(widthDimension: .fractionalWidth(fractionalWidth),
+                                               heightDimension: .estimated(88)))
             case .banner:
-                return NSCollectionLayoutItem(layoutSize: .init(widthDimension: .fractionalWidth(1),
-                                                                heightDimension: .estimated(132)))
+                return .init(layoutSize: .init(widthDimension: .fractionalWidth(1),
+                                               heightDimension: .estimated(132)))
             }
         }
 
-        var headerItem: NSCollectionLayoutBoundarySupplementaryItem {
+        func createHeaderLayout(viewModel: MainViewModel) -> NSCollectionLayoutBoundarySupplementaryItem {
             switch self {
             case .balance:
                 return .init(layoutSize: .init(widthDimension: .fractionalWidth(1),
@@ -56,59 +62,59 @@ extension MainViewController {
             }
         }
 
-        var groupItem: NSCollectionLayoutGroup {
+        func createGroupLayout(viewModel: MainViewModel) -> NSCollectionLayoutGroup {
+            let itemLayout = createItemLayout(viewModel: viewModel)
             switch self {
             case .balance:
-                let group = NSCollectionLayoutGroup.vertical(layoutSize: .init(widthDimension: .fractionalWidth(1),
-                                                                               heightDimension: .estimated(128)),
-                                                             subitems: [self.layoutItem])
-                return group
+                let groupLayout = NSCollectionLayoutGroup.vertical(layoutSize: .init(widthDimension: .fractionalWidth(1),
+                                                                                     heightDimension: .estimated(128)),
+                                                                   subitems: [itemLayout])
+                return groupLayout
             case .action:
-                let innerGroup = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .fractionalWidth(1),
-                                                                                      heightDimension: .estimated(96)),
-                                                                    subitems: [self.layoutItem])
-                let group = NSCollectionLayoutGroup.vertical(layoutSize: .init(widthDimension: .fractionalWidth(1),
-                                                                               heightDimension: .estimated(192)),
-                                                             subitems: [innerGroup])
-                return group
+                let innerGroupLayout = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .fractionalWidth(1),
+                                                                                            heightDimension: .estimated(96)),
+                                                                          subitems: [itemLayout])
+                let groupLayout = NSCollectionLayoutGroup.vertical(layoutSize: .init(widthDimension: .fractionalWidth(1),
+                                                                                     heightDimension: .estimated(192)),
+                                                                   subitems: [innerGroupLayout])
+                return groupLayout
             case .favorite:
-                let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .fractionalWidth(1),
-                                                                                 heightDimension: .estimated(88)),
-                                                               subitems: [self.layoutItem])
-                return group
+                let groupLayout = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .fractionalWidth(1),
+                                                                                       heightDimension: .estimated(88)),
+                                                                     subitems: [itemLayout])
+                return groupLayout
             case .banner:
-                let group = NSCollectionLayoutGroup.vertical(layoutSize: .init(widthDimension: .fractionalWidth(1),
-                                                                               heightDimension: .estimated(132)),
-                                                             subitems: [self.layoutItem])
-                return group
+                let groupLayout = NSCollectionLayoutGroup.vertical(layoutSize: .init(widthDimension: .fractionalWidth(1),
+                                                                                     heightDimension: .estimated(132)),
+                                                                   subitems: [itemLayout])
+                return groupLayout
             }
         }
 
-        var sectionItem: NSCollectionLayoutSection {
+        func createSectionLayout(viewModel: MainViewModel) -> NSCollectionLayoutSection {
+            let groupLayout = createGroupLayout(viewModel: viewModel)
             switch self {
             case .balance:
-                let group = self.groupItem
-                group.contentInsets = .init(top: 0, leading: 24, bottom: 0, trailing: 24)
-                let section = NSCollectionLayoutSection(group: group)
-                let header = self.headerItem
-                header.contentInsets = .init(top: 0, leading: 24, bottom: 8, trailing: 24)
-                section.boundarySupplementaryItems = [header]
-                return section
+                groupLayout.contentInsets = .init(top: 0, leading: 24, bottom: 0, trailing: 24)
+                let sectionLayout = NSCollectionLayoutSection(group: groupLayout)
+                let headerLayout = createHeaderLayout(viewModel: viewModel)
+                headerLayout.contentInsets = .init(top: 0, leading: 24, bottom: 8, trailing: 24)
+                sectionLayout.boundarySupplementaryItems = [headerLayout]
+                return sectionLayout
             case .action:
-                let section = NSCollectionLayoutSection(group: self.groupItem)
-                section.contentInsets = .init(top: 0, leading: 0, bottom: 8, trailing: 0)
-                return section
+                let sectionLayout = NSCollectionLayoutSection(group: groupLayout)
+                sectionLayout.contentInsets = .init(top: 0, leading: 0, bottom: 8, trailing: 0)
+                return sectionLayout
             case .favorite:
-                let group = self.groupItem
-                let section = NSCollectionLayoutSection(group: group)
-                let header = self.headerItem
-                header.contentInsets = .init(top: 0, leading: 24, bottom: 0, trailing: 16)
-                section.contentInsets = .init(top: 0, leading: 0, bottom: 8, trailing: 0)
-                section.boundarySupplementaryItems = [header]
-                section.orthogonalScrollingBehavior = .paging
-                return section
+                let sectionLayout = NSCollectionLayoutSection(group: groupLayout)
+                let headerLayout = createHeaderLayout(viewModel: viewModel)
+                headerLayout.contentInsets = .init(top: 0, leading: 24, bottom: 0, trailing: 16)
+                sectionLayout.contentInsets = .init(top: 0, leading: 0, bottom: 8, trailing: 0)
+                sectionLayout.boundarySupplementaryItems = [headerLayout]
+                sectionLayout.orthogonalScrollingBehavior = .paging
+                return sectionLayout
             case .banner:
-                return NSCollectionLayoutSection(group: self.groupItem)
+                return NSCollectionLayoutSection(group: groupLayout)
             }
         }
     }

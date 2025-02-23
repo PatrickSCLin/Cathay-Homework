@@ -16,7 +16,7 @@ enum Currency: String, CaseIterable {
 final class BalanceCellViewModel: ViewModelType {
     struct Input {
         let amountVisiableDidSet: AnyPublisher<Bool, Never>
-        let infoDidUpdate: AnyPublisher<BalanceInfo, Never>
+        let infoDidUpdate: AnyPublisher<BalanceModel, Never>
     }
 
     struct Output {

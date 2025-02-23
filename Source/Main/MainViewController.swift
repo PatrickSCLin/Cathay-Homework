@@ -36,16 +36,13 @@ class MainViewController: UIViewController {
 
         setupNavigationItems()
         setupLayout()
+        setupDataSource()
         binding()
     }
 
     private func setupNavigationItems() {
         navigationItem.leftBarButtonItem = avatarBarButtonItem
         navigationItem.rightBarButtonItem = notificationBarButtonItem
-//        navigationItem.backBarButtonItem = .init(image: .init(named: "back_arrow"),
-//                                                 style: .plain,
-//                                                 target: nil,
-//                                                 action: nil)
     }
 
     private func setupLayout() {
@@ -59,19 +56,24 @@ class MainViewController: UIViewController {
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
 
-        view.addSubview(tabView)
-        tabView.translatesAutoresizingMaskIntoConstraints = false
+//        view.addSubview(tabView)
+//        tabView.translatesAutoresizingMaskIntoConstraints = false
+//
+//        NSLayoutConstraint.activate([
+//            tabView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+//            tabView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+//            tabView.widthAnchor.constraint(equalToConstant: 328),
+//            tabView.heightAnchor.constraint(equalToConstant: 50),
+//        ])
+    }
 
-        NSLayoutConstraint.activate([
-            tabView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            tabView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            tabView.widthAnchor.constraint(equalToConstant: 328),
-            tabView.heightAnchor.constraint(equalToConstant: 50),
-        ])
+    private func setupDataSource() {
+        dataSource = MainDataSource(collectionView: collectionView, viewModel: viewModel)
     }
 
     private func binding() {
-        let output = viewModel.transform(.init(viewDidPull: refreshDidPullSubject.eraseToAnyPublisher()),
+        let output = viewModel.transform(.init(viewDidPull: refreshDidPullSubject.eraseToAnyPublisher(),
+                                               notificationDidTap: notificationDidTapSubject.eraseToAnyPublisher()),
                                          cancellables: &cancellables)
 
         output.isLoadingVisible.sink { [weak self] result in
@@ -96,6 +98,15 @@ class MainViewController: UIViewController {
                     UIImage(named: "notification_inactive")
             }
             .store(in: &cancellables)
+
+        Publishers.CombineLatest4(output.balances,
+                                  output.actions,
+                                  output.favorites,
+                                  output.banners)
+            .sink { [weak self] _, _, _, _ in
+                self?.dataSource?.applySnapshot()
+            }
+            .store(in: &cancellables)
     }
 
     @objc private func avatarDidTap() {
@@ -104,6 +115,7 @@ class MainViewController: UIViewController {
 
     @objc private func notificationDidTap() {
         coordinator?.showNotifications()
+        notificationDidTapSubject.send(())
     }
 
     @objc private func refreshDidPull() {
@@ -122,10 +134,9 @@ class MainViewController: UIViewController {
 
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewCompositionalLayout { [weak self] sectionIndex, _ in
-            guard let section = Section(rawValue: sectionIndex) else { return nil }
+            guard let self, let section = Section(rawValue: sectionIndex) else { return nil }
 
-            let sectionLayout = section.sectionItem
-            return sectionLayout
+            return section.createSectionLayout(viewModel: self.viewModel)
         }
 
         let view = UICollectionView(frame: .zero, collectionViewLayout: layout)
@@ -137,6 +148,8 @@ class MainViewController: UIViewController {
                       forCellWithReuseIdentifier: ActionCell.reuseIdentifier)
         view.register(FavoriteCell.self,
                       forCellWithReuseIdentifier: FavoriteCell.reuseIdentifier)
+        view.register(FavoritePlaceholderCell.self,
+                      forCellWithReuseIdentifier: FavoritePlaceholderCell.reuseIdentifier)
         view.register(BannerCell.self,
                       forCellWithReuseIdentifier: BannerCell.reuseIdentifier)
         view.register(BalanceHeader.self,
@@ -145,7 +158,6 @@ class MainViewController: UIViewController {
         view.register(FavoriteHeader.self,
                       forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
                       withReuseIdentifier: FavoriteHeader.reuseIdentifier)
-        view.dataSource = self
 
         let control = UIRefreshControl()
         control.addTarget(self, action: #selector(refreshDidPull), for: .valueChanged)
@@ -159,93 +171,8 @@ class MainViewController: UIViewController {
     }()
 
     private var refreshDidPullSubject = PassthroughSubject<Void, Never>()
+    private var notificationDidTapSubject = PassthroughSubject<Void, Never>()
+    private var dataSource: MainDataSource?
 
     private var cancellables: Set<AnyCancellable> = []
-}
-
-extension MainViewController: UICollectionViewDataSource {
-    func numberOfSections(in collectionView: UICollectionView) -> Int {
-        return 4
-    }
-
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        guard let section = Section(rawValue: section) else { return 0 }
-
-        switch section {
-        case .balance:
-            return viewModel.balances.count
-        case .action:
-            return viewModel.actions.count
-        case .favorite:
-            return viewModel.favorites.count
-        case .banner:
-            return viewModel.banners.isEmpty ? 0 : 1
-        }
-    }
-
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let section = Section(rawValue: indexPath.section) else { return UICollectionViewCell() }
-
-        switch section {
-        case .balance:
-            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: BalanceCell.reuseIdentifier,
-                                                                for: indexPath) as? BalanceCell else {
-                return UICollectionViewCell()
-            }
-
-            cell.configure(viewModel: .init(),
-                           amountVisiableDidSet: viewModel.amoustVisiable.eraseToAnyPublisher(),
-                           infoDidUpdate: Just(viewModel.balances[indexPath.item]).eraseToAnyPublisher())
-            return cell
-        case .action:
-            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ActionCell.reuseIdentifier,
-                                                                for: indexPath) as? ActionCell else {
-                return UICollectionViewCell()
-            }
-
-            cell.configure(viewModel: .init(type: viewModel.actions[indexPath.item]))
-            return cell
-        case .favorite:
-            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: FavoriteCell.reuseIdentifier,
-                                                                for: indexPath) as? FavoriteCell else {
-                return UICollectionViewCell()
-            }
-
-            let favorite = viewModel.favorites[indexPath.item]
-            cell.configure(viewModel: .init(title: favorite.nickname, type: favorite.transType))
-            return cell
-        case .banner:
-            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: BannerCell.reuseIdentifier,
-                                                                for: indexPath) as? BannerCell else {
-                return UICollectionViewCell()
-            }
-
-            cell.configure(viewModel: .init(bannerInfos: viewModel.banners))
-            return cell
-        }
-    }
-
-    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        guard let section = Section(rawValue: indexPath.section) else { return UICollectionReusableView() }
-
-        switch section {
-        case .balance:
-            guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind,
-                                                                               withReuseIdentifier: BalanceHeader.reuseIdentifier,
-                                                                               for: indexPath) as? BalanceHeader else {
-                return UICollectionReusableView()
-            }
-
-            header.configure(viewModel: .init(amoutVisible: viewModel.amoustVisiable))
-            return header
-
-        case .favorite:
-            return collectionView.dequeueReusableSupplementaryView(ofKind: kind,
-                                                                   withReuseIdentifier: FavoriteHeader.reuseIdentifier,
-                                                                   for: indexPath)
-
-        case .action, .banner:
-            return UICollectionReusableView()
-        }
-    }
 }

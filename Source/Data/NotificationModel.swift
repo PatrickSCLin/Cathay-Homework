@@ -1,5 +1,5 @@
 //
-//  Notification.swift
+//  NotificationModel.swift
 //  CUB App
 //
 //  Created by Patrick Lin on 2025/2/22.
@@ -10,7 +10,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class Notification {
+final class NotificationModel {
     var title: String
     var message: String
     var status: Bool
@@ -26,16 +26,16 @@ final class Notification {
     }
 }
 
-extension Notification {
+extension NotificationModel {
     static func hasNewMessage(lastUpdateDatetime: Date) -> Bool {
-        var descriptor = FetchDescriptor<Notification>()
-        descriptor.predicate = #Predicate<Notification> { $0.updateDateTime > lastUpdateDatetime }
+        var descriptor = FetchDescriptor<NotificationModel>()
+        descriptor.predicate = #Predicate<NotificationModel> { $0.updateDateTime > lastUpdateDatetime }
         descriptor.sortBy = [SortDescriptor(\.updateDateTime, order: .reverse)]
         return (try? Database.shared.context.fetch(descriptor).first) != nil
     }
 
-    static func fetchAll() -> [Notification] {
-        var descriptor = FetchDescriptor<Notification>()
+    static func fetchAll() -> [NotificationModel] {
+        var descriptor = FetchDescriptor<NotificationModel>()
         descriptor.sortBy = [SortDescriptor(\.updateDateTime, order: .reverse)]
         return (try? Database.shared.context.fetch(descriptor)) ?? []
     }

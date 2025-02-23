@@ -5,7 +5,7 @@
 //  Created by Patrick Lin on 2025/2/22.
 //
 
-struct FavoriteInfo: Decodable {
+struct FavoriteInfo: Decodable, Hashable {
     enum CodingKeys: String, CodingKey {
         case nickname
         case transType
@@ -31,7 +31,7 @@ struct FavoriteInfo: Decodable {
     }
 }
 
-struct FavoritesInfo: Decodable {
+struct FavoritesInfo: Decodable, Hashable {
     enum CodingKeys: String, CodingKey {
         case result
         case favoriteList

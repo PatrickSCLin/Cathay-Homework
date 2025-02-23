@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct NotificationInfo: Decodable {
+struct NotificationInfo: Decodable, Hashable {
     let status: Bool
     let updateDateTime: Date
     let title: String
@@ -51,7 +51,7 @@ struct NotificationInfo: Decodable {
     }
 }
 
-struct NotificationsInfo: Decodable {
+struct NotificationsInfo: Decodable, Hashable {
     enum CodingKeys: String, CodingKey {
         case result
         case messages

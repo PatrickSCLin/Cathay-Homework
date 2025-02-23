@@ -5,7 +5,7 @@
 //  Created by Patrick Lin on 2025/2/22.
 //
 
-struct BannerInfo: Decodable {
+struct BannerInfo: Decodable, Hashable {
     let adSeqNo: Int
     let linkUrl: String
 }

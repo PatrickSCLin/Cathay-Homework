@@ -7,25 +7,49 @@
 
 import Combine
 import Foundation
+import SwiftData
 
 final class MainViewModel: ViewModelType {
     struct Input {
         let viewDidPull: AnyPublisher<Void, Never>
+        let notificationDidTap: AnyPublisher<Void, Never>
     }
 
     struct Output {
         let isLoadingVisible: AnyPublisher<Bool, Never>
         let hasNewNotification: AnyPublisher<Bool, Never>
-        let balance: AnyPublisher<[BalanceInfo], Never>
+        let balances: AnyPublisher<[BalanceModel], Never>
+        let actions: AnyPublisher<[Action], Never>
+        let favorites: AnyPublisher<[FavoriteModel], Never>
+        let banners: AnyPublisher<[BannerInfo], Never>
     }
 
-    var balances: [BalanceInfo] { balancesSubject.value }
+    var balances: [BalanceModel] { balancesSubject.value }
     var actions: [Action] { actionsSubject.value }
-    var favorites: [FavoriteInfo] { favoritesSubject.value }
+    var favorites: [FavoriteModel] { favoritesSubject.value }
     var banners: [BannerInfo] { bannersSubject.value }
     var tabs: [Tab] { tabsSubject.value }
 
     let amoustVisiable: CurrentValueSubject<Bool, Never> = .init(false)
+
+    init() {
+        var balances = BalanceModel.fetchAll()
+        if balances.isEmpty {
+            balances = Constants.defaultBalance
+        }
+        balancesSubject = .init(balances)
+
+        let favorites = FavoriteModel.fetchAll()
+        favoritesSubject = .init(favorites)
+
+        actionsSubject = .init(Constants.defaultActions)
+        bannersSubject = .init([])
+        tabsSubject = .init(Constants.defaultTabs)
+
+        let lastReadTime = UserDefaults.standard.lastNotificationReadTime ?? Date(timeIntervalSince1970: 0)
+        let hasNewNotification = NotificationModel.hasNewMessage(lastUpdateDatetime: lastReadTime)
+        hasNewNotificationSubject = .init(hasNewNotification)
+    }
 
     func transform(_ input: Input, cancellables: inout Set<AnyCancellable>) -> Output {
         input.viewDidPull
@@ -37,9 +61,19 @@ final class MainViewModel: ViewModelType {
             }
             .store(in: &cancellables)
 
+        input.notificationDidTap
+            .sink { [weak self] _ in
+                UserDefaults.standard.lastNotificationReadTime = Date()
+                self?.hasNewNotificationSubject.send(false)
+            }
+            .store(in: &cancellables)
+
         return .init(isLoadingVisible: isLoadingVisibleSubject.eraseToAnyPublisher(),
                      hasNewNotification: hasNewNotificationSubject.eraseToAnyPublisher(),
-                     balance: balancesSubject.eraseToAnyPublisher())
+                     balances: balancesSubject.eraseToAnyPublisher(),
+                     actions: actionsSubject.eraseToAnyPublisher(),
+                     favorites: favoritesSubject.eraseToAnyPublisher(),
+                     banners: bannersSubject.eraseToAnyPublisher())
     }
 
     private func fetchData() {
@@ -51,15 +85,33 @@ final class MainViewModel: ViewModelType {
                 .flatMap { notificationsInfo in
                     let notifications = notificationsInfo
                         .notifications
-                        .map { Notification(title: $0.title,
-                                            message: $0.message,
-                                            status: $0.status,
-                                            updateDateTime: $0.updateDateTime) }
+                        .map { NotificationModel(title: $0.title,
+                                                 message: $0.message,
+                                                 status: $0.status,
+                                                 updateDateTime: $0.updateDateTime) }
                     Database.shared.save(notifications)
-                    return Just(Notification.hasNewMessage(lastUpdateDatetime: Date(timeIntervalSince1970: 0)))
+                    let lastReadTime = UserDefaults.standard.lastNotificationReadTime ?? Date(timeIntervalSince1970: 0)
+                    return Just(NotificationModel.hasNewMessage(lastUpdateDatetime: lastReadTime))
                 },
-            apiClient.fetchBalances(currencies: Currency.allCases),
-            apiClient.fetchFavorites(),
+            apiClient.fetchBalances(currencies: Currency.allCases)
+                .flatMap { balanceInfos in
+                    let balances = balanceInfos
+                        .map { BalanceModel(currency: $0.currency, balance: $0.balance) }
+                    Database.shared.save(balances)
+                    return Just(balances)
+                },
+            apiClient.fetchFavorites()
+                .flatMap { favoritesInfo in
+                    var favorites = [FavoriteModel]()
+                    for (index, favoriteInfo) in favoritesInfo.favorites.enumerated() {
+                        let favorite = FavoriteModel(nickname: favoriteInfo.nickname,
+                                                     transType: favoriteInfo.transType,
+                                                     index: index)
+                        favorites.append(favorite)
+                    }
+                    Database.shared.save(favorites)
+                    return Just(favorites)
+                },
             apiClient.fetchBanners()
         )
         .subscribe(on: DispatchQueue.global(qos: .background))
@@ -75,9 +127,9 @@ final class MainViewModel: ViewModelType {
             }
 
             self.isLoadingVisibleSubject.send(false)
-        } receiveValue: { [weak self] hasNewNotification, balanceInfos, favoritesInfo, bannersInfo in
-            self?.balancesSubject.send(balanceInfos)
-            self?.favoritesSubject.send(favoritesInfo.favorites)
+        } receiveValue: { [weak self] hasNewNotification, balances, favorites, bannersInfo in
+            self?.balancesSubject.send(balances)
+            self?.favoritesSubject.send(favorites)
             self?.bannersSubject.send(bannersInfo.banners)
             self?.hasNewNotificationSubject.send(hasNewNotification)
         }
@@ -85,37 +137,19 @@ final class MainViewModel: ViewModelType {
     }
 
     private let isLoadingVisibleSubject = CurrentValueSubject<Bool, Never>(false)
-    private let hasNewNotificationSubject = CurrentValueSubject<Bool, Never>(false)
-    private let balancesSubject = CurrentValueSubject<[BalanceInfo], Never>(Constants.defaultBalance)
-    private let actionsSubject = CurrentValueSubject<[Action], Never>(Constants.defaultActions)
-    private let favoritesSubject = CurrentValueSubject<[FavoriteInfo], Never>([])
-    private let bannersSubject = CurrentValueSubject<[BannerInfo], Never>([])
-    private let tabsSubject = CurrentValueSubject<[Tab], Never>(Constants.defaultTabs)
+    private let hasNewNotificationSubject: CurrentValueSubject<Bool, Never>
+    private let balancesSubject: CurrentValueSubject<[BalanceModel], Never>
+    private let actionsSubject: CurrentValueSubject<[Action], Never>
+    private let favoritesSubject: CurrentValueSubject<[FavoriteModel], Never>
+    private let bannersSubject: CurrentValueSubject<[BannerInfo], Never>
+    private let tabsSubject: CurrentValueSubject<[Tab], Never>
     private var requestCancellables: Set<AnyCancellable> = []
 }
 
 private enum Constants {
-    static let defaultBalance: [BalanceInfo] = [
-        .init(currency: .usd, balance: 45001, saving: [
-            .init(account: "44558824", curr: "USD", balance: 10000.78),
-            .init(account: "77990025", curr: "USD", balance: 5000)
-        ], fixedDeposit: [
-            .init(account: "44558822", curr: "USD", balance: 10000.11),
-            .init(account: "77990023", curr: "USD", balance: 5000)
-        ], digital: [
-            .init(account: "44558820", curr: "USD", balance: 10000),
-            .init(account: "77990021", curr: "USD", balance: 5000.11)
-        ]),
-        .init(currency: .khr, balance: 4500000, saving: [
-            .init(account: "44558814", curr: "KHR", balance: 1000000),
-            .init(account: "77990015", curr: "KHR", balance: 500000)
-        ], fixedDeposit: [
-            .init(account: "44558812", curr: "KHR", balance: 1000000),
-            .init(account: "77990013", curr: "KHR", balance: 500000)
-        ], digital: [
-            .init(account: "44558810", curr: "KHR", balance: 1000000),
-            .init(account: "77990011", curr: "KHR", balance: 500000)
-        ])
+    static let defaultBalance: [BalanceModel] = [
+        .init(currency: .usd, balance: 45001),
+        .init(currency: .khr, balance: 4500000)
     ]
 
     static let defaultActions: [Action] = [

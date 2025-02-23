@@ -73,8 +73,8 @@ extension NotificationViewController {
 
         let notification = viewModel.notifications[indexPath.row]
         var hasRead = false
-        if let lastReadTime = viewModel.lastReadTime, notification.updateDateTime.compare(lastReadTime) == .orderedDescending {
-            hasRead = notification.updateDateTime > lastReadTime
+        if let lastReadTime = viewModel.lastReadTime, notification.updateDateTime.compare(lastReadTime) == .orderedAscending {
+            hasRead = true
         }
         cell.configure(viewModel: .init(title: notification.title,
                                         message: notification.message,

@@ -31,7 +31,7 @@ class BalanceCell: UICollectionViewCell {
         cancellables = []
     }
 
-    func configure(viewModel: BalanceCellViewModel, amountVisiableDidSet: AnyPublisher<Bool, Never>, infoDidUpdate: AnyPublisher<BalanceInfo, Never>) {
+    func configure(viewModel: BalanceCellViewModel, amountVisiableDidSet: AnyPublisher<Bool, Never>, infoDidUpdate: AnyPublisher<BalanceModel, Never>) {
         self.viewModel = viewModel
 
         let output = self.viewModel?.transform(.init(amountVisiableDidSet: amountVisiableDidSet,

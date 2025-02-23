@@ -5,7 +5,7 @@
 //  Created by Patrick Lin on 2025/2/20.
 //
 
-struct SavingInfo: Decodable {
+struct SavingInfo: Decodable, Hashable {
     enum CodingKeys: String, CodingKey {
         case result
         case savingsList

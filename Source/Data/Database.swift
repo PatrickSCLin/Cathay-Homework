@@ -16,7 +16,9 @@ final class Database {
     private init() {
         do {
             let schema = Schema([
-                Notification.self
+                NotificationModel.self,
+                BalanceModel.self,
+                FavoriteModel.self
             ])
             let configuration = ModelConfiguration(isStoredInMemoryOnly: false)
             container = try ModelContainer(for: schema, configurations: [configuration])

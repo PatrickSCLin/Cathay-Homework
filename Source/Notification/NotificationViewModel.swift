@@ -12,23 +12,23 @@ final class NotificationViewModel: ViewModelType {
     struct Input {}
 
     struct Output {
-        let notifications: AnyPublisher<[Notification], Never>
+        let notifications: AnyPublisher<[NotificationModel], Never>
     }
 
     let lastReadTime: Date?
 
-    var notifications: [Notification] { notificationsSubject.value }
+    var notifications: [NotificationModel] { notificationsSubject.value }
 
     init() {
         self.lastReadTime = UserDefaults.standard.lastNotificationReadTime
     }
 
     func transform(_ input: Input, cancellables: inout Set<AnyCancellable>) -> Output {
-        let notifications = Notification.fetchAll()
+        let notifications = NotificationModel.fetchAll()
         notificationsSubject.send(notifications)
 
         return .init(notifications: notificationsSubject.eraseToAnyPublisher())
     }
 
-    private let notificationsSubject = CurrentValueSubject<[Notification], Never>([])
+    private let notificationsSubject = CurrentValueSubject<[NotificationModel], Never>([])
 }

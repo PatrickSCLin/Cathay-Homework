@@ -66,7 +66,9 @@ class TabView: UIView {
     private func configureTabs(_ tabs: [Tab]) {
         for (index, tab) in tabs.enumerated() {
             let itemView = itemViews[index]
-            itemView.configure(viewModel: .init(title: tab.title, image: tab.image))
+            itemView.configure(viewModel: .init(title: tab.title,
+                                                image: tab.image,
+                                                isSelected: viewModel.selectedIndex == index))
         }
     }
 

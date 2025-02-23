@@ -16,6 +16,7 @@ final class TabViewModel: ViewModelType {
     }
 
     var tabs: [Tab] { tabsSubject.value }
+    var selectedIndex: Int { selectedIndexSubject.value }
 
     init(tabs: [Tab]) {
         self.tabsSubject = .init(tabs)

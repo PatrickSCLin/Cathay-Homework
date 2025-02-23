@@ -48,10 +48,13 @@ class BalanceCell: UICollectionViewCell {
             .sink { [weak self] in self?.amountLabel.text = $0 }
             .store(in: &cancellables)
 
-//        output?.isAmountVisible
-//            .receive(on: DispatchQueue.main)
-//            .sink { [weak self] in self?.amountLabel.isHidden = !$0 }
-//            .store(in: &cancellables)
+        output?.isAmountVisible
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isAmountVisiable in
+                self?.amountLabel.isHidden = !isAmountVisiable
+                self?.secureLabel.isHidden = isAmountVisiable
+            }
+            .store(in: &cancellables)
     }
 
     private func setupStyle() {
@@ -59,9 +62,26 @@ class BalanceCell: UICollectionViewCell {
     }
 
     private func setupLayout() {
+        let amountView = UIView()
+        amountView.addSubview(amountLabel)
+        amountView.addSubview(secureLabel)
+        amountLabel.translatesAutoresizingMaskIntoConstraints = false
+        secureLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            amountLabel.topAnchor.constraint(equalTo: amountView.topAnchor),
+            amountLabel.bottomAnchor.constraint(equalTo: amountView.bottomAnchor),
+            amountLabel.leadingAnchor.constraint(equalTo: amountView.leadingAnchor),
+            amountLabel.bottomAnchor.constraint(equalTo: amountView.bottomAnchor),
+            secureLabel.topAnchor.constraint(equalTo: amountView.topAnchor),
+            secureLabel.bottomAnchor.constraint(equalTo: amountView.bottomAnchor),
+            secureLabel.leadingAnchor.constraint(equalTo: amountView.leadingAnchor),
+            secureLabel.bottomAnchor.constraint(equalTo: amountView.bottomAnchor),
+        ])
+
         let stackView = UIStackView(arrangedSubviews: [
             currencyLabel,
-            amountLabel,
+            amountView,
         ])
         stackView.axis = .vertical
         stackView.alignment = .leading
@@ -90,6 +110,16 @@ class BalanceCell: UICollectionViewCell {
 
     private lazy var amountLabel: UILabel = {
         let label = UILabel()
+        label.font = .style3
+        label.textColor = .systemGray8
+        label.textAlignment = .center
+        label.setContentCompressionResistancePriority(.defaultHigh, for: .vertical)
+        return label
+    }()
+
+    private lazy var secureLabel: UILabel = {
+        let label = UILabel()
+        label.text = "********"
         label.font = .style3
         label.textColor = .systemGray8
         label.textAlignment = .center

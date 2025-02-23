@@ -16,7 +16,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
 
-        let navigationController = UINavigationController()
+        let navigationController = NavigationController()
         coordiantor = AppCoordinator(navigationController: navigationController)
         navigationController.view.backgroundColor = .customBG
 

@@ -16,15 +16,19 @@ final class BalanceHeaderViewModel: ViewModelType {
         let isAmountVisible: AnyPublisher<Bool, Never>
     }
 
+    init(amoutVisible: CurrentValueSubject<Bool, Never>) {
+        self.amoutVisible = amoutVisible
+    }
+
     func transform(_ input: Input, cancellables: inout Set<AnyCancellable>) -> Output {
         input.eyeDidTap.sink { [weak self] in
             guard let self else { return }
 
-            self.isAmountVisible.send(!self.isAmountVisible.value)
+            self.amoutVisible.send(!self.amoutVisible.value)
         }.store(in: &cancellables)
 
-        return .init(isAmountVisible: isAmountVisible.eraseToAnyPublisher())
+        return .init(isAmountVisible: amoutVisible.eraseToAnyPublisher())
     }
 
-    private let isAmountVisible = CurrentValueSubject<Bool, Never>(false)
+    private let amoutVisible: CurrentValueSubject<Bool, Never>
 }

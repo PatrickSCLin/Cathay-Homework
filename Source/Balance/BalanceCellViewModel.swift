@@ -26,14 +26,6 @@ final class BalanceCellViewModel: ViewModelType {
     }
 
     func transform(_ input: Input, cancellables: inout Set<AnyCancellable>) -> Output {
-        input.amountVisiableDidSet
-            .sink { [weak self] value in
-                guard let self else { return }
-
-                self.isAmountVisibleSubject.send(value)
-            }
-            .store(in: &cancellables)
-
         input.infoDidUpdate
             .sink { [weak self] info in
                 guard let self else { return }
@@ -44,7 +36,7 @@ final class BalanceCellViewModel: ViewModelType {
             .store(in: &cancellables)
 
         return .init(
-            isAmountVisible: isAmountVisibleSubject
+            isAmountVisible: input.amountVisiableDidSet
                 .eraseToAnyPublisher(),
             currency: currencySubject
                 .eraseToAnyPublisher(),
@@ -60,7 +52,6 @@ final class BalanceCellViewModel: ViewModelType {
         )
     }
 
-    private let isAmountVisibleSubject = CurrentValueSubject<Bool, Never>(false)
     private let currencySubject = CurrentValueSubject<String, Never>("")
     private let amountSubject = CurrentValueSubject<Double, Never>(0)
 }

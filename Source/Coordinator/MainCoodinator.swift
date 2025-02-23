@@ -8,7 +8,8 @@
 import UIKit
 
 final class MainCoordinator: Coordinatable {
-    private(set) var children: [Coordinatable]
+    weak var parent: Coordinatable?
+    var children: [Coordinatable]
     let navigationController: UINavigationController
 
     init(navigationController: UINavigationController) {
@@ -17,7 +18,14 @@ final class MainCoordinator: Coordinatable {
     }
 
     func start() {
-        let viewController = MainViewController(viewModel: .init())
+        let viewController = MainViewController(viewModel: .init(), coordinator: self)
         navigationController.pushViewController(viewController, animated: false)
+    }
+
+    func showNotifications() {
+        let coordinator = NotificationCoordinator(navigationController: navigationController)
+        coordinator.parent = self
+        children.append(coordinator)
+        coordinator.start()
     }
 }

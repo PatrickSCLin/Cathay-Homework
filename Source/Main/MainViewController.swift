@@ -13,9 +13,11 @@ class MainViewController: UIViewController {
                              cellViewModels: [any ViewModelType])
 
     let viewModel: MainViewModel
+    weak var coordinator: MainCoordinator?
 
-    required init(viewModel: MainViewModel) {
+    required init(viewModel: MainViewModel, coordinator: MainCoordinator? = nil) {
         self.viewModel = viewModel
+        self.coordinator = coordinator
 
         super.init(nibName: nil, bundle: nil)
     }
@@ -23,6 +25,10 @@ class MainViewController: UIViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    deinit {
+        coordinator?.finish()
     }
 
     override func viewDidLoad() {
@@ -34,14 +40,12 @@ class MainViewController: UIViewController {
     }
 
     private func setupNavigationItems() {
-        navigationItem.leftBarButtonItem = UIBarButtonItem(image: UIImage(named: "avatar"),
-                                                           style: .plain,
-                                                           target: self,
-                                                           action: #selector(avatarDidTap))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "notification"),
-                                                            style: .plain,
-                                                            target: self,
-                                                            action: #selector(notificationDidTap))
+        navigationItem.leftBarButtonItem = avatarBarButtonItem
+        navigationItem.rightBarButtonItem = notificationBarButtonItem
+//        navigationItem.backBarButtonItem = .init(image: .init(named: "back_arrow"),
+//                                                 style: .plain,
+//                                                 target: nil,
+//                                                 action: nil)
     }
 
     private func setupLayout() {
@@ -74,7 +78,7 @@ class MainViewController: UIViewController {
             guard let self else { return }
 
             if result, self.collectionView.refreshControl?.isRefreshing ?? false {
-                collectionView.refreshControl?.endRefreshing()
+                self.collectionView.refreshControl?.endRefreshing()
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
                     self?.collectionView.reloadData()
@@ -82,6 +86,16 @@ class MainViewController: UIViewController {
             }
         }
         .store(in: &cancellables)
+
+        output.hasNewNotification
+            .sink { [weak self] hasNewNotification in
+                guard let self else { return }
+
+                self.notificationBarButtonItem.image = hasNewNotification ?
+                    UIImage(named: "notification_active") :
+                    UIImage(named: "notification_inactive")
+            }
+            .store(in: &cancellables)
     }
 
     @objc private func avatarDidTap() {
@@ -89,12 +103,22 @@ class MainViewController: UIViewController {
     }
 
     @objc private func notificationDidTap() {
-        print("notification did tapped")
+        coordinator?.showNotifications()
     }
 
     @objc private func refreshDidPull() {
         refreshDidPullSubject.send(())
     }
+
+    private lazy var avatarBarButtonItem: UIBarButtonItem = .init(image: UIImage(named: "avatar"),
+                                                                  style: .plain,
+                                                                  target: self,
+                                                                  action: #selector(avatarDidTap))
+
+    private lazy var notificationBarButtonItem: UIBarButtonItem = .init(image: UIImage(named: "notification_inactive"),
+                                                                        style: .plain,
+                                                                        target: self,
+                                                                        action: #selector(notificationDidTap))
 
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewCompositionalLayout { [weak self] sectionIndex, _ in
@@ -134,7 +158,6 @@ class MainViewController: UIViewController {
         return view
     }()
 
-    private var amountVisibleSubject = CurrentValueSubject<Bool, Never>(false)
     private var refreshDidPullSubject = PassthroughSubject<Void, Never>()
 
     private var cancellables: Set<AnyCancellable> = []
@@ -171,7 +194,7 @@ extension MainViewController: UICollectionViewDataSource {
             }
 
             cell.configure(viewModel: .init(),
-                           amountVisiableDidSet: amountVisibleSubject.eraseToAnyPublisher(),
+                           amountVisiableDidSet: viewModel.amoustVisiable.eraseToAnyPublisher(),
                            infoDidUpdate: Just(viewModel.balances[indexPath.item]).eraseToAnyPublisher())
             return cell
         case .action:
@@ -207,9 +230,14 @@ extension MainViewController: UICollectionViewDataSource {
 
         switch section {
         case .balance:
-            return collectionView.dequeueReusableSupplementaryView(ofKind: kind,
-                                                                   withReuseIdentifier: BalanceHeader.reuseIdentifier,
-                                                                   for: indexPath)
+            guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind,
+                                                                               withReuseIdentifier: BalanceHeader.reuseIdentifier,
+                                                                               for: indexPath) as? BalanceHeader else {
+                return UICollectionReusableView()
+            }
+
+            header.configure(viewModel: .init(amoutVisible: viewModel.amoustVisiable))
+            return header
 
         case .favorite:
             return collectionView.dequeueReusableSupplementaryView(ofKind: kind,

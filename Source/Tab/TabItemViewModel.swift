@@ -9,9 +9,7 @@ import Combine
 import UIKit
 
 final class TabItemViewModel: ViewModelType {
-    struct Input {
-        let selectionDidChange: AnyPublisher<Bool, Never>
-    }
+    struct Input {}
 
     struct Output {
         let title: AnyPublisher<String, Never>
@@ -19,18 +17,19 @@ final class TabItemViewModel: ViewModelType {
         let isSelected: AnyPublisher<Bool, Never>
     }
 
-    init(title: String, image: UIImage) {
+    init(title: String, image: UIImage, isSelected: Bool = false) {
         self.title = title
         self.image = image
+        self.isSelectedSubject = .init(isSelected)
     }
 
     func transform(_ input: Input, cancellables: inout Set<AnyCancellable>) -> Output {
         return .init(title: Just(title).eraseToAnyPublisher(),
                      image: Just(image).eraseToAnyPublisher(),
-                     isSelected: input.selectionDidChange)
+                     isSelected: isSelectedSubject.eraseToAnyPublisher())
     }
 
     private let title: String
     private let image: UIImage
-    private let isSelectedSubject: CurrentValueSubject<Bool, Never> = .init(false)
+    private let isSelectedSubject: CurrentValueSubject<Bool, Never>
 }

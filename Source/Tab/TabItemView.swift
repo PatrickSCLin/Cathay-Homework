@@ -25,9 +25,8 @@ class TabItemView: UIView {
     func configure(viewModel: TabItemViewModel) {
         self.viewModel = viewModel
         
-        let output = viewModel.transform(.init(selectionDidChange: selectionSubject.eraseToAnyPublisher()),
-                                         cancellables: &cancellables)
-        
+        let output = viewModel.transform(.init(), cancellables: &cancellables)
+
         output.title
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.titleLabel.text = $0 }
@@ -68,7 +67,7 @@ class TabItemView: UIView {
     }
     
     @objc private func handleTap() {
-        selectionSubject.send(true)
+        // TODO: Not requried implemetation in homework
     }
     
     private lazy var imageView: UIImageView = {
@@ -85,6 +84,5 @@ class TabItemView: UIView {
         return label
     }()
     
-    private let selectionSubject = PassthroughSubject<Bool, Never>()
     private var cancellables: Set<AnyCancellable> = []
 }

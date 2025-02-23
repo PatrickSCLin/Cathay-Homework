@@ -13,4 +13,6 @@ extension UIColor {
     static let customGray6: UIColor = .init(red: 111/255, green: 111/255, blue: 111/255, alpha: 1)
     static let systemGray7: UIColor = .init(red: 85/255, green: 85/255, blue: 85/255, alpha: 1)
     static let systemGray8: UIColor = .init(red: 68/255, green: 68/255, blue: 68/255, alpha: 1)
+    static let systemGray10: UIColor = .init(red: 26/255, green: 26/255, blue: 26/255, alpha: 1)
+    static let battleshipGray: UIColor = .init(red: 115/255, green: 116/255, blue: 126/255, alpha: 1)
 }

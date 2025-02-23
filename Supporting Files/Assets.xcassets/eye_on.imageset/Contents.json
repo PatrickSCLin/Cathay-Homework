@@ -1,15 +1,17 @@
 {
   "images" : [
     {
+      "filename" : "iconEye01On.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "ads_03.png",
+      "filename" : "iconEye01On@2x.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
+      "filename" : "iconEye01On@3x.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
@@ -17,5 +19,8 @@
   "info" : {
     "author" : "xcode",
     "version" : 1
+  },
+  "properties" : {
+    "template-rendering-intent" : "original"
   }
 }

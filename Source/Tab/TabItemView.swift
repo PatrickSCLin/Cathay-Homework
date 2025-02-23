@@ -56,9 +56,6 @@ class TabItemView: UIView {
         stackView.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            // 移除固定宽度约束，改用最小宽度约束
-            widthAnchor.constraint(greaterThanOrEqualToConstant: 70),
-            heightAnchor.constraint(equalToConstant: 50),
             stackView.centerXAnchor.constraint(equalTo: centerXAnchor),
             stackView.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])

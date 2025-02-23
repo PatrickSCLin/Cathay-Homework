@@ -62,7 +62,8 @@ class MainViewController: UIViewController {
         NSLayoutConstraint.activate([
             tabView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             tabView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            tabView.widthAnchor.constraint(equalToConstant: 328),
+            tabView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            tabView.trailingAnchor.constraint(equalTo: view.leadingAnchor, constant: -24),
             tabView.heightAnchor.constraint(equalToConstant: 50),
         ])
     }

@@ -108,8 +108,14 @@ extension MainViewController {
             case .favorite:
                 let sectionLayout = NSCollectionLayoutSection(group: groupLayout)
                 let headerLayout = createHeaderLayout(viewModel: viewModel)
-                headerLayout.contentInsets = .init(top: 0, leading: 24, bottom: 0, trailing: 16)
-                sectionLayout.contentInsets = .init(top: 0, leading: 0, bottom: 8, trailing: 0)
+                if viewModel.favorites.isEmpty {
+                    headerLayout.contentInsets = .init(top: 0, leading: 24, bottom: 0, trailing: 16)
+                    sectionLayout.contentInsets = .init(top: 0, leading: 0, bottom: 8, trailing: 0)
+                } else {
+                    headerLayout.contentInsets = .init(top: 0, leading: 0, bottom: 0, trailing: 16)
+                    sectionLayout.contentInsets = .init(top: 0, leading: 24, bottom: 8, trailing: 0)
+                }
+
                 sectionLayout.boundarySupplementaryItems = [headerLayout]
                 sectionLayout.orthogonalScrollingBehavior = .paging
                 return sectionLayout

@@ -30,9 +30,15 @@ final class FavoriteModel: Hashable {
         self.index = index
     }
 
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(nickname)
+        hasher.combine(transTypeRawValue)
+        hasher.combine(index)
+    }
+
     static func == (lhs: FavoriteModel, rhs: FavoriteModel) -> Bool {
         return lhs.nickname == rhs.nickname &&
-            lhs.transType == rhs.transType &&
+            lhs.transTypeRawValue == rhs.transTypeRawValue &&
             lhs.index == rhs.index
     }
 }

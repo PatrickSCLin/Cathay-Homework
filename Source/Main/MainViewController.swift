@@ -56,15 +56,15 @@ class MainViewController: UIViewController {
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
 
-//        view.addSubview(tabView)
-//        tabView.translatesAutoresizingMaskIntoConstraints = false
-//
-//        NSLayoutConstraint.activate([
-//            tabView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-//            tabView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-//            tabView.widthAnchor.constraint(equalToConstant: 328),
-//            tabView.heightAnchor.constraint(equalToConstant: 50),
-//        ])
+        view.addSubview(tabView)
+        tabView.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            tabView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            tabView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            tabView.widthAnchor.constraint(equalToConstant: 328),
+            tabView.heightAnchor.constraint(equalToConstant: 50),
+        ])
     }
 
     private func setupDataSource() {

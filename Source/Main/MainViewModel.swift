@@ -49,6 +49,8 @@ final class MainViewModel: ViewModelType {
         let lastReadTime = UserDefaults.standard.lastNotificationReadTime ?? Date(timeIntervalSince1970: 0)
         let hasNewNotification = NotificationModel.hasNewMessage(lastUpdateDatetime: lastReadTime)
         hasNewNotificationSubject = .init(hasNewNotification)
+
+        fetchBanners()
     }
 
     func transform(_ input: Input, cancellables: inout Set<AnyCancellable>) -> Output {
@@ -76,11 +78,23 @@ final class MainViewModel: ViewModelType {
                      banners: bannersSubject.eraseToAnyPublisher())
     }
 
+    private func fetchBanners() {
+        APIClient().fetchBanners()
+            .subscribe(on: DispatchQueue.global(qos: .background))
+            .receive(on: DispatchQueue.main)
+            .sink { _ in
+
+            } receiveValue: { [weak self] bannersInfo in
+                self?.bannersSubject.send(bannersInfo.banners)
+            }
+            .store(in: &requestCancellables)
+    }
+
     private func fetchData() {
         requestCancellables = []
 
         let apiClient = APIClient()
-        Publishers.Zip4(
+        Publishers.Zip3(
             apiClient.fetchNotifications()
                 .flatMap { notificationsInfo in
                     let notifications = notificationsInfo
@@ -111,8 +125,7 @@ final class MainViewModel: ViewModelType {
                     }
                     Database.shared.save(favorites)
                     return Just(favorites)
-                },
-            apiClient.fetchBanners()
+                }
         )
         .subscribe(on: DispatchQueue.global(qos: .background))
         .receive(on: DispatchQueue.main)
@@ -127,10 +140,9 @@ final class MainViewModel: ViewModelType {
             }
 
             self.isLoadingVisibleSubject.send(false)
-        } receiveValue: { [weak self] hasNewNotification, balances, favorites, bannersInfo in
+        } receiveValue: { [weak self] hasNewNotification, balances, favorites in
             self?.balancesSubject.send(balances)
             self?.favoritesSubject.send(favorites)
-            self?.bannersSubject.send(bannersInfo.banners)
             self?.hasNewNotificationSubject.send(hasNewNotification)
         }
         .store(in: &requestCancellables)
